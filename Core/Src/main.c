@@ -43,12 +43,10 @@
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-//save status of Button Matrix
+
 uint16_t ButtonMatrixState = 0;
+uint32_t ButtonMatrixTimeStamp = 0;
 
-
-//Button TimeStamp
-uint32_t ButtonMatrixTimestamp = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -56,6 +54,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+
+void ButtonMatrixUpdate(); //Scan and Update data of Button Matrix
 
 /* USER CODE END PFP */
 
@@ -94,18 +94,27 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+  //--------------------------------------------------------------------------------
 
+
+
+  //--------------------------------------------------------------------------------
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  //--------------------------------------------------------------------------------
   while (1)
   {
+   ButtonMatrixUpdate();
+
+
+
+  //--------------------------------------------------------------------------------
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  ButtonMatrixUpdata();
-	  //function button
   }
   /* USER CODE END 3 */
 }
@@ -263,40 +272,39 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-//port/in array , 0-3 input , 4-7 output
-GPIO_TypeDef* ButtonmatrixPort[8] = {GPIOA,GPIOB,GPIOB,GPIOB,GPIOC,GPIOB,GPIOA};
-uint16_t ButtonMatrixPin[8] = {GPIO_PIN_10,GPIO_PIN_3,GPIO_PIN_5,GPIO_PIN_4,GPIO_PIN_9,GPIO_PIN_6,GPIO_PIN_7};
-uint8_t ButtonMatrixLine = 0;
-void ButtonMatrixUpdata()
+//Function Implementation
+GPIO_TypeDef* ButtonMatrixPort[8] = {GPIOA,       GPIOB,      GPIOB,      GPIOB,             GPIOA,      GPIOC,      GPIOB,      GPIOA     };
+uint16_t      ButtonMatrixPin [8] = {GPIO_PIN_10, GPIO_PIN_3, GPIO_PIN_5, GPIO_PIN_4,        GPIO_PIN_9, GPIO_PIN_7, GPIO_PIN_6, GPIO_PIN_7};
+uint8_t       ButtonMatrixLine    = 0;
+
+void ButtonMatrixUpdate()
 {
-	if (HAL_GetTick()-ButtonMatrixTimestamp >= 100)
-	{
-		ButtonMatrixTimestamp = HAL_GetTick();
-		int i ;
-		for (i = 0 ; i < 4 ; i+=1)
-		{
-			GPIO_PinState PinState = HAL_GPIO_ReadPin(ButtonmatrixPort[i],ButtonMatrixPin[i]);
-			if(PinState == GPIO_PIN_RESET)
-			{
-				ButtonMatrixState |= (uint16_t)0*1 << (i+ButtonMatrixLine * 4);
-			}
-			else
-			{
-				ButtonMatrixState &= ~((uint16_t)1<< (i+ButtonMatrixLine * 4));
-			}
-		}
-		uint8_t NowOutputPin = ButtonMatrixLine +4;
-		//SET Rn
-		HAL_GPIO_WritePin(ButtonmatrixPort[NowOutputPin],ButtonMatrixPin[NowOutputPin],GPIO_PIN_SET);
+ if(HAL_GetTick() - ButtonMatrixTimeStamp >= 100)
+ {
+  ButtonMatrixTimeStamp = HAL_GetTick();
+  for(int i = 0; i < 4; i++)
+  {
+   GPIO_PinState PinState = HAL_GPIO_ReadPin(ButtonMatrixPort[i], ButtonMatrixPin[i]);
+   if(PinState == GPIO_PIN_RESET) // Button is Pressed
+   {
+    ButtonMatrixState |= (uint16_t)1 << (i + ButtonMatrixLine * 4);
 
-		//updata New Line
-		ButtonMatrixLine =(ButtonMatrixLine + 1) % 4;
+   }
+   else
+   {
+    ButtonMatrixState &= ~((uint16_t)1 << (i + ButtonMatrixLine * 4));
 
-		uint8_t NextOutputpin = ButtonMatrixLine + 4;
-		//Reset Rn+1
-		HAL_GPIO_WritePin(ButtonmatrixPort[NowOutputPin],ButtonMatrixPin[NowOutputPin],GPIO_PIN_RESET);
-	}
+   }
+  }
+  uint8_t NowOutputPin = ButtonMatrixLine + 4;
+  HAL_GPIO_WritePin(ButtonMatrixPort[NowOutputPin], ButtonMatrixPin[NowOutputPin], GPIO_PIN_SET);
+  ButtonMatrixLine = (ButtonMatrixLine + 1) % 4;
+
+  uint8_t NextOutputPin = ButtonMatrixLine + 4;
+  HAL_GPIO_WritePin(ButtonMatrixPort[NextOutputPin], ButtonMatrixPin[NextOutputPin], GPIO_PIN_RESET);
+ }
 }
+
 /* USER CODE END 4 */
 
 /**
