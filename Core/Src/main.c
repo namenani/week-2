@@ -376,7 +376,7 @@ void ButtonMatrixUpdate() {
 				CountTwo = 0;
 				Count = 0;
 				CountZero = 0;
-				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, REGPIO_PIN_SET);
+				HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 
 			}
 
